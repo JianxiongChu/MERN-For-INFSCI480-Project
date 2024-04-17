@@ -14,7 +14,14 @@ await mongoose
 // Initialization of Express.js app property
 const app = express();
 app.use(express.json()); // use middleware that automatically parses JSON formatted request bodies
-app.use(cors()); // enables Cross-Origin Resource Sharing (CORS) for application, allowing requests to be received from other domains
+app.use(cors(
+  // NOTICE: uncommenting following brackets will allow this backend app to ONLY accept request coming from local host at port 3000
+  // {
+  //   origin: "http://localhost:3000",
+  //   methods:[],
+  //   allowHeader:[]
+  // }
+)); // enables Cross-Origin Resource Sharing (CORS) for application, allowing requests to be received from other domains
 
 // Default GET endpoint for generic information processing, negligible
 app.get("/", async (request, response) => {
@@ -28,9 +35,43 @@ app.get("/", async (request, response) => {
 // GET endpoint for retrieving all user records from target database
 app.get("/users", async (request, response) => {
   try {
-    const users = await User.find({}).select("-_id"); // filters out default ID created by MongoDB
+    const users = await User.findOne({}).select("-_id"); // filters out default ID created by MongoDB
 
     response.status(200).send(users);
+  } catch (error) {
+    response.status(500).send(error.message);
+  }
+});
+
+// GET for retrieving one user by email
+// Use case: displaying user info on user page
+app.get("/users/:email/", async (request, response) => {
+  try {
+    const user = await User.findOne({email:request.params.email})
+
+    response.status(200).send(user);
+  } catch (error) {
+    response.status(500).send(error.message);
+  }
+});
+
+// GET for retrieving one user's visit history
+app.get("/users/:email/get-article-visits", async (request, response) => {
+  try {
+    const user = await User.findOne({email:request.params.email})
+
+    response.status(200).send(user.visitHistory);
+  } catch (error) {
+    response.status(500).send(error.message);
+  }
+});
+
+// GET for retrieving one user's preferred keywords
+app.get("/users/get-preferred-keywords", async (request, response) => {
+  try {
+    const users = await User.findOne({email:request.params.email})
+
+    response.status(200).send(user.preferredKeyword);
   } catch (error) {
     response.status(500).send(error.message);
   }
@@ -121,7 +162,7 @@ app.put(
 );
 
 // PUT endpoint for adding a keyword to user preference
-// This endpoint has no body, and the two parameters to be store are included within URL params
+// This endpoint has no body
 app.put("/users/:email/addkw/:keyword", async (request, response) => {
   try {
     const targetUserEmail = request.params.email;
@@ -142,7 +183,7 @@ app.put("/users/:email/addkw/:keyword", async (request, response) => {
 });
 
 // PUT endpoint for removing a keyword from user preference
-// This endpoint has no body, and the two parameters to be store are included within URL params
+// This endpoint has no body
 app.put("/users/:email/removekw/:keyword", async (request, response) => {
   try {
     const targetUserEmail = request.params.email;
@@ -165,6 +206,8 @@ app.put("/users/:email/removekw/:keyword", async (request, response) => {
     response.status(500).send(error.message);
   }
 });
+
+
 
 // Listens on designated port by env variable provided by config.js
 app.listen(PORT, () => {
